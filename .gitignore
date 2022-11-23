@@ -1,9 +1,7 @@
 .venv/
+.mypy_cache/
 AVID.SA.18004.1/
 __pycache__/
 AVID.SA_.18004.1.zip
-cli.py
 docIndex.xml
-main_org.py
 noter.txt
-run_org.py
