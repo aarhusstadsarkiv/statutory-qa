@@ -1,13 +1,34 @@
 import xml.etree.ElementTree as ET
-from pathlib import Path
-import os
 import shutil
 import argparse
+from pathlib import Path
 
-histogram: dict[str, int] = {}  # ".pdf": 0
-paths_out: list[Path] = []
-to_copy: dict[str, list[Path]] = {}
-to_copy_filename: dict[str, list[str]] = {}
+
+ILLIGAL_NAMES = [
+    "con",
+    "prn",
+    "aux",
+    "nul",
+    "com1",
+    "com2",
+    "com3",
+    "com4",
+    "com5",
+    "com6",
+    "com7",
+    "com8",
+    "com9",
+    "lpt1",
+    "lpt2",
+    "lpt3",
+    "lpt4",
+    "lpt5",
+    "lpt6",
+    "lpt7",
+    "lpt8",
+    "lpt9",
+]
+
 
 def get_version() -> str:
     version: str = "Ukendt version"
@@ -18,96 +39,90 @@ def get_version() -> str:
     return version
 
 
-def readXML(parent_folder: Path):
+def parse_docIndex_xml(
+    xml_file: Path, max_examples: int = 3
+) -> dict[str, list[Path]]:
+    """Returns a dictionary containing suffixes as keys and lists
+    of relative paths to be copied as values.
 
-    docIndex = Path(parent_folder, "Indices\\docIndex.xml")
-    tree = ET.parse(docIndex)
+    Params:
+        xml_file: Path to a valid and wellformed docIndex.xml file.
+
+    Returns:
+        A dict with unique lowercase file-suffixes extracted from the
+          original filenames and a list of paths to example files.
+    """
+    # resulting output-dict of suffix: list of filepaths
+    files_to_copy: dict[str, list[Path]] = {}
+
+    # docIndex = Path(root_folder, "Indices\\docIndex.xml")
+    tree = ET.parse(xml_file)
     root = tree.getroot()
-
-    print(parent_folder)
-    parent_folder = Path(parent_folder, "Documents")
-
     ns = ".//{http://www.sa.dk/xmlns/diark/1.0}"
 
     for doc in root:
+        # extract suffix from original filename and clean it
+        suffix = Path(
+            str(doc.find(f"{ns}oFn").text)  # type: ignore
+        ).suffix.strip()
+        if suffix:
+            suffix = suffix.lower()[1:]
+        else:
+            suffix = "manglende_filendelse"
 
-        suffix = Path(str(doc.findall(f"{ns}oFn")[0].text)).suffix
+        # ensure key exists and is not fully populated, in output-dict
+        if suffix not in files_to_copy:
+            files_to_copy[suffix] = []
+        if len(files_to_copy[suffix]) >= max_examples:
+            continue
 
+        # assemble the relative path to the document that we have to copy
+        # e.g. 'docCollection2/32/1.tif' (dCf / dID / "1." + aFt)
+        doc_path = Path(
+            str(doc.find(f"{ns}dCf").text),  # type: ignore
+            str(doc.find(f"{ns}dID").text),  # type: ignore
+            "1." + str(doc.find(f"{ns}aFt").text),  # type: ignore
+        )
+
+        # add relative filepath to output dict
+        files_to_copy[suffix].append(doc_path)
+
+    return files_to_copy
+
+
+def copy_files(
+    files: dict[str, list[Path]], document_dir: Path, output_dir: Path
+) -> None:
+    """Copies a dict of suffix: list of filepath to a given output_dir
+
+    Params:
+        files:
+        output_dir: Path to the destination directory
+
+    Returns:
+        None
+    """
+    for suffix, file_paths in files.items():
+        if suffix in ILLIGAL_NAMES:
+            suffix = suffix + " (windows renaming)"
+
+        folder_path = Path(output_dir, suffix)
         try:
-            if histogram[suffix] >= 3:
-                continue
+            folder_path.mkdir(parents=True, exist_ok=False)
+        except Exception as e:
+            exit(f"Unable to create output-path: {folder_path}: {e}")
 
-            histogram[suffix] = histogram[suffix] + 1
-
-            path = Path(
-                str(doc.findall(f"{ns}dCf")[0].text),
-                str(doc.findall(f"{ns}dID")[0].text),
-                str(doc.findall(f"{ns}mID")[0].text)
-                + "."
-                + str(doc.findall(f"{ns}aFt")[0].text),
-            )
-            final_path = Path(parent_folder, path)
-            paths_out.append(final_path)
-
-            key = suffix.replace(".", "")
-            to_copy[key].append(final_path)
-            to_copy_filename[key].append(
-                str(doc.findall(f"{ns}dCf")[0].text)
-                + "_"
-                + str(doc.findall(f"{ns}dID")[0].text)
-                + "_"
-                + str(doc.findall(f"{ns}mID")[0].text)
-            )
-
-        except KeyError:
-            histogram[suffix] = 1
-
-            path = Path(
-                str(doc.findall(f"{ns}dCf")[0].text),
-                str(doc.findall(f"{ns}dID")[0].text),
-                str(doc.findall(f"{ns}mID")[0].text)
-                + "."
-                + str(doc.findall(f"{ns}aFt")[0].text),
-            )
-            final_path = Path(parent_folder, path)
-            paths_out.append(final_path)
-
-            key = suffix.replace(".", "")
-            to_copy[key] = [final_path]
-            to_copy_filename[key] = [
-                str(doc.findall(f"{ns}dCf")[0].text)
-                + "_"
-                + str(doc.findall(f"{ns}dID")[0].text)
-                + "_"
-                + str(doc.findall(f"{ns}mID")[0].text)
-            ]
-
-
-def make_dirs(output_dir):
-
-    for suffix in to_copy.keys():
-        path_out = Path(output_dir, suffix)
-
-        try:
-            os.mkdir(path_out)
-
-            for i in range(len(to_copy[suffix])):
-                print(to_copy[suffix][i])
-
-                renamed_file = Path(
-                    to_copy_filename[suffix][i] + to_copy[suffix][i].suffix
-                )
-                # print(renamed_file)
-                path_out_full = Path(path_out, renamed_file)
-                print(path_out_full)
-                shutil.copy2(to_copy[suffix][i], path_out_full)
-
-        except FileExistsError:
-            print("Folder exists already...")
+        # for each "{docCollection}/{id}/1.{ext}" copy to output_dir / suffix
+        for file_path in file_paths:
+            fname = str(file_path).replace("\\", "_")
+            try:
+                source = Path(document_dir, file_path)
+                shutil.copy2(source, folder_path / fname)
+            except Exception as e:
+                print(f"Unable to copy file to: {folder_path / fname} {e}")
 
 
 def main(args=None):
-
     parser = argparse.ArgumentParser(
         description=(
             "Takes the first 3 files with the same suffix and copy them to"
@@ -128,20 +143,14 @@ def main(args=None):
 
     args = parser.parse_args(args)
 
-    print(args.input)
-    print(args.output)
-
-    input_dir = args.input  # Path(sys.argv[1])
-    output_dir = args.output  # Path(sys.argv[2])
+    input_dir = args.input
+    output_dir = args.output
 
     if Path(input_dir).exists():
-        print(input_dir)
-        readXML(input_dir)
-        # print(to_copy)
-        # print(to_copy_filename)
-        make_dirs(output_dir)
-        print(histogram)
-        # print(to_copy_filename)
+        files = parse_docIndex_xml(
+            Path(input_dir, "Indices", "docIndex.xml"), max_examples=4
+        )
+        copy_files(files, Path(input_dir, "Documents"), output_dir)
 
 
 if __name__ == "__main__":
