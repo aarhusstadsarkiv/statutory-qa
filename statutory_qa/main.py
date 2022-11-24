@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 import shutil
 import argparse
 from pathlib import Path
+import os
 
 
 ILLIGAL_NAMES = [
@@ -40,8 +41,7 @@ def get_version() -> str:
 
 
 def parse_docIndex_xml(
-    xml_file: Path, max_examples: int = 3
-) -> dict[str, list[Path]]:
+    xml_file: Path, max_examples: int) -> dict[str, list[Path]]:
     """Returns a dictionary containing suffixes as keys and lists
     of relative paths to be copied as values.
 
@@ -135,22 +135,56 @@ def main(args=None):
     parser.add_argument(
         "output",
         metavar="output_dir",
-        type=str,
+        type=Path,
         help="Output directory for copied files.",
+    )
+    parser.add_argument(
+        "--max_ex",
+        metavar="max_examples",
+        type=int,
+        help="Sets the number of copied examples.",
     )
 
     parser.add_argument("--version", action="version", version=get_version())
 
     args = parser.parse_args(args)
 
-    input_dir = args.input
-    output_dir = args.output
+    input_dir = Path(args.input)
+    output_dir = Path(args.output)
+    max_ex = args.max_ex or 3
+    
+    if not input_dir.exists():
+        errors = True
+        exit("Input directory doesn't exists.")
 
-    if Path(input_dir).exists():
-        files = parse_docIndex_xml(
-            Path(input_dir, "Indices", "docIndex.xml"), max_examples=4
-        )
-        copy_files(files, Path(input_dir, "Documents"), output_dir)
+    if not Path(input_dir, "Indices", "docIndex.xml").exists():
+        errors = True
+        exit("The given path doesn't contain Indices\docIndex.xml")
+
+    #test write access:
+    if not output_dir.exists():
+
+        try:
+            output_dir.mkdir(parents=True, exist_ok=False)            
+        except:
+            exit("Access error: Unable to make directory at the specified location.")
+
+    try:
+        temp_file_path: Path = output_dir / 'temp.tmp'
+        f = open(temp_file_path, "w")
+        f.write("Write access test...")
+        f.close()
+        temp_file_path.unlink()
+        os.rmdir(Path(output_dir))
+
+    except Warning:
+        exit("Access error: Unable to create file at the specified location.")
+    
+
+    files = parse_docIndex_xml(
+        Path(input_dir, "Indices", "docIndex.xml"), max_ex
+    )
+    copy_files(files, Path(input_dir, "Documents"), output_dir)
 
 
 if __name__ == "__main__":
