@@ -4,6 +4,7 @@ version = "0.1.1"
 description = ""
 authors = ["Thomas <oeth@aarhus.dk>"]
 readme = "README.md"
+packages = [{include = "statutory_qa"}]
 include = ["pyproject.toml"]
 
 [tool.poetry.dependencies]
