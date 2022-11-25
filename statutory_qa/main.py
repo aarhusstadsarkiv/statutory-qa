@@ -154,6 +154,9 @@ def main(args=None):
     output_dir = Path(args.output)
     max_ex = args.max_ex or 3
 
+    if max_ex < 1:
+        exit("No files was chosen to be copied with --max_ex < 1...exited.")
+
     if not input_dir.exists():
         exit("Input directory doesn't exists.")
 
