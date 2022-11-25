@@ -178,7 +178,7 @@ def main(args=None):
         os.rmdir(Path(output_dir))
 
     except Warning:
-        exit("Access error: Unable to create file at the specified location.")
+        exit("Access error: Unable to create file at the specified location...")
     
 
     files = parse_docIndex_xml(
