@@ -1,0 +1,39 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on: [pull_request]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  linting:
+    name: Linting and formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v1
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.9.15
+      - name: Install Poetry
+        uses: snok/install-poetry@v1.3.3
+        with:
+          virtualenvs-create: false
+          virtualenvs-in-project: true
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: ${{ runner.os }}-venv-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-venv-
+      - name: Install dependencies
+        run: |
+          poetry env use 3.9
+          poetry install
+      - name: Run flake8, black
+        run: |
+          poetry run flake8 .
+          poetry run black --check .
