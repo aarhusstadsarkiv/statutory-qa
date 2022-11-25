@@ -41,7 +41,8 @@ def get_version() -> str:
 
 
 def parse_docIndex_xml(
-    xml_file: Path, max_examples: int) -> dict[str, list[Path]]:
+    xml_file: Path, max_examples: int
+) -> dict[str, list[Path]]:
     """Returns a dictionary containing suffixes as keys and lists
     of relative paths to be copied as values.
 
@@ -73,7 +74,7 @@ def parse_docIndex_xml(
         # ensure key exists and is not fully populated, in output-dict
         if suffix not in files_to_copy:
             files_to_copy[suffix] = []
-        if len(files_to_copy[suffix]) >= max_examples:
+        elif len(files_to_copy[suffix]) >= max_examples:
             continue
 
         # assemble the relative path to the document that we have to copy
@@ -152,34 +153,37 @@ def main(args=None):
     input_dir = Path(args.input)
     output_dir = Path(args.output)
     max_ex = args.max_ex or 3
-    
+
     if not input_dir.exists():
-        errors = True
         exit("Input directory doesn't exists.")
 
     if not Path(input_dir, "Indices", "docIndex.xml").exists():
-        errors = True
-        exit("The given path doesn't contain Indices\docIndex.xml")
+        exit("The given path doesn't contain Indices\\docIndex.xml")
 
-    #test write access:
+    # test write access:
     if not output_dir.exists():
 
         try:
-            output_dir.mkdir(parents=True, exist_ok=False)            
-        except:
-            exit("Access error: Unable to make directory at the specified location.")
+            output_dir.mkdir(parents=True, exist_ok=False)
+        except Exception as e:
+            exit(
+                f"Access error: Unable to make directory "
+                f"at the specified location: {e}"
+            )
 
     try:
-        temp_file_path: Path = output_dir / 'temp.tmp'
+        temp_file_path: Path = output_dir / "temp.tmp"
         f = open(temp_file_path, "w")
         f.write("Write access test...")
         f.close()
         temp_file_path.unlink()
         os.rmdir(Path(output_dir))
 
-    except Warning:
-        exit("Access error: Unable to create file at the specified location...")
-    
+    except Warning as w:
+        exit(
+            f"Access error: Unable to create file "
+            f"at the specified location: {w}"
+        )
 
     files = parse_docIndex_xml(
         Path(input_dir, "Indices", "docIndex.xml"), max_ex
