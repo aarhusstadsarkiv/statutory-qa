@@ -1,10 +1,10 @@
 [tool.poetry]
 name = "statutory-qa"
-version = "0.1.1"
+version = "0.1.2"
 description = ""
 authors = ["Thomas <oeth@aarhus.dk>"]
 readme = "README.md"
-packages = [{include = "statutory_qa"}]
+# packages = [{include = "statutory_qa"}]
 include = ["pyproject.toml"]
 
 [tool.poetry.dependencies]
