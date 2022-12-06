@@ -218,10 +218,17 @@ def main(args=None):
         ),
     )
     parser.add_argument("--version", action="version", version=get_version())
+
     parser.add_argument(
         "--histogram",
         action="store_true",
         help=("print a list of suffixes and number of original files"),
+    )
+
+    parser.add_argument(
+        "--checksum",
+        type=str,
+        help=("print ext: count for each file matching the checksum"),
     )
 
     args = parser.parse_args(args)
@@ -271,7 +278,36 @@ def main(args=None):
             f"at the specified location: {w}"
         )
 
-    #############
+    #####################
+    # Files by checksum #
+    #####################
+    if args.checksum:
+        # dict of extension, count signifying number of extensions matching
+        # args.checksum
+        output: dict[str, int] = {}
+        checksums = parse_fileIndex_xml(fileIndex_xml)
+        print(f"Samlet antal filer: {len(checksums)}", flush=True)
+        paths: list[str] = [
+            k for k, v in checksums.items() if v == args.checksum
+        ]
+        print(f"Antal matching filer fundet: {len(paths)}", flush=True)
+        docIndex_files: dict[str, list[Path]] = parse_docIndex_xml(
+            docIndex_xml
+        )
+        for ext, path_list in docIndex_files.items():
+            for path in path_list:
+                if "/".join(path.parts) not in paths:
+                    continue
+                if ext not in output:
+                    output[ext] = 0
+                output[ext] += 1
+
+        for k, v in output.items():
+            print(f"{k},{v}", flush=True)
+
+        # print(f"checksum submittet: {args.checksum}")
+        exit()
+
     # Histogram #
     #############
     if args.histogram:
