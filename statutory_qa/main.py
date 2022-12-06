@@ -296,7 +296,7 @@ def main(args=None):
         docIndex_files: dict[str, list[Path]] = parse_docIndex_xml(
             docIndex_xml
         )
-        print(f"Start iterating through matches in docIndex.xml", flush=True)
+        print("Start iterating through matches in docIndex.xml", flush=True)
         i = 0
         for ext, path_list in docIndex_files.items():
             if i % 10 == 0:
