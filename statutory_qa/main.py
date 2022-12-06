@@ -309,12 +309,12 @@ def main(args=None):
                 output[ext] += 1
             i += 1
 
-        for k, v in output.items():
-            print(f"{k},{v}", flush=True)
+        for tuple in sorted(output.items(), key=lambda i: i[1], reverse=True):
+            print(f"{tuple[0]}\t\t{tuple[1]}", flush=True)
 
-        # print(f"checksum submittet: {args.checksum}")
         exit()
 
+    #############
     # Histogram #
     #############
     if args.histogram:
