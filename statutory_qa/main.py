@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 import shutil
 import argparse
 from pathlib import Path
+from typing import Set
 
 
 ILLEGAL_NAMES = [
@@ -196,6 +197,8 @@ def main(args=None):
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    parser.add_argument("--version", action="version", version=get_version())
+
     parser.add_argument(
         "input",
         metavar="avid_dir",
@@ -217,7 +220,6 @@ def main(args=None):
             " extension (default: %(default)s)"
         ),
     )
-    parser.add_argument("--version", action="version", version=get_version())
 
     parser.add_argument(
         "--histogram",
@@ -287,20 +289,25 @@ def main(args=None):
         output: dict[str, int] = {}
         checksums = parse_fileIndex_xml(fileIndex_xml)
         print(f"Samlet antal filer: {len(checksums)}", flush=True)
-        paths: list[str] = [
+        paths: Set[str] = set(
             k for k, v in checksums.items() if v == args.checksum
-        ]
+        )
         print(f"Antal matching filer fundet: {len(paths)}", flush=True)
         docIndex_files: dict[str, list[Path]] = parse_docIndex_xml(
             docIndex_xml
         )
+        print(f"Start iterating through matches in docIndex.xml", flush=True)
+        i = 0
         for ext, path_list in docIndex_files.items():
+            if i % 10 == 0:
+                print("Finished parsing 10 extensions", flush=True)
             for path in path_list:
                 if "/".join(path.parts) not in paths:
                     continue
                 if ext not in output:
                     output[ext] = 0
                 output[ext] += 1
+            i += 1
 
         for k, v in output.items():
             print(f"{k},{v}", flush=True)
