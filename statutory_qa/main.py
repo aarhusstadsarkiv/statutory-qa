@@ -297,10 +297,13 @@ def main(args=None):
             docIndex_xml
         )
         print("Start iterating through matches in docIndex.xml", flush=True)
+
+        total_counts: dict[str, int] = {}
         i = 0
         for ext, path_list in docIndex_files.items():
-            if i % 10 == 0:
-                print("Finished parsing 10 extensions", flush=True)
+            total_counts[ext] = len(path_list)
+            # if i % 10 == 0:
+            #     print("Finished parsing 10 extensions", flush=True)
             for path in path_list:
                 if "/".join(path.parts) not in paths:
                     continue
@@ -310,8 +313,10 @@ def main(args=None):
             i += 1
 
         for tuple in sorted(output.items(), key=lambda i: i[1], reverse=True):
-            print(f"{tuple[0]}\t\t{tuple[1]}", flush=True)
-
+            print(
+                f"{tuple[0]}\t\t{tuple[1]}\t\t{(tuple[1] / total_counts[tuple[0]]) * 100}",
+                flush=True,
+            )
         exit()
 
     #############
