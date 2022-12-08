@@ -314,7 +314,7 @@ def main(args=None):
 
         for tuple in sorted(output.items(), key=lambda i: i[1], reverse=True):
             print(
-                f"{tuple[0]}\t\t{tuple[1]}\t\t{(tuple[1] / total_counts[tuple[0]]) * 100}",
+                f"{tuple[0]}\t\t{tuple[1]}\t\t{(tuple[1] / total_counts[tuple[0]]) * 100}",  # noqa: E501
                 flush=True,
             )
         exit()
